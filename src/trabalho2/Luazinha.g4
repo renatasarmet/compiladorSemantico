@@ -2,7 +2,7 @@ grammar Luazinha;
 
 
 @members{
-static String grupo = "<Coloque os RAs do seu grupo aqui>"; 
+static String grupo = "<Coloque os RAs do seu grupo aqui>";
 PilhaDeTabelas pilhaDeTabelas = new PilhaDeTabelas();
 }
 
@@ -18,16 +18,16 @@ trecho : (comando ';'?)* (ultimocomando ';'?)?
 bloco : trecho
       ;
 
-comando :  listavar '=' listaexp 
+comando :  listavar '=' listaexp
         |  chamadadefuncao
         |  'do' bloco 'end'
         |  'while' exp 'do' bloco 'end'
         |  'repeat' bloco 'until' exp
         |  'if' exp 'then' bloco ('elseif' exp 'then' bloco)* ('else' bloco)? 'end'
         |  'for' NOME '=' exp ',' exp (',' exp)? 'do' bloco 'end'
-        |  'for' listadenomes 'in' listaexp 'do' bloco 'end'
-        |  'function' nomedafuncao corpodafuncao 
-        |  'local' 'function' NOME corpodafuncao 
+        |  'for' listadenomes 'in' listaexp 'do' { pilhaDeTabelas.empilhar(new TabelaDeSimbolos("for")); } bloco  { pilhaDeTabelas.desempilhar(); }'end' //Adicao da tabela de simbolos for
+        |  'function' nomedafuncao { pilhaDeTabelas.empilhar(new TabelaDeSimbolos($nomedafuncao.text)); } corpodafuncao { pilhaDeTabelas.desempilhar(); } //Adicao da tabela de simbolos para funcao
+        |  'local' 'function' NOME corpodafuncao
         |  'local' listadenomes ('=' listaexp)?
         ;
 
@@ -49,7 +49,7 @@ listavar returns [ List<String> nomes ]
     ;
 
 var returns [ String nome, int linha, int coluna ]
-    :  NOME { $nome = $NOME.getText(); $linha = $NOME.line; $coluna = $NOME.pos; } 
+    :  NOME { $nome = $NOME.getText(); $linha = $NOME.line; $coluna = $NOME.pos; }
     |  expprefixo '[' exp ']'
     |  expprefixo '.' NOME
     ;
@@ -63,8 +63,8 @@ listadenomes returns [ List<String> nomes ]
 listaexp : (exp ',')* exp
          ;
 
-exp :  'nil' | 'false' | 'true' | NUMERO | CADEIA | '...' | funcao | 
-       expprefixo2 | construtortabela | exp opbin exp | opunaria exp 
+exp :  'nil' | 'false' | 'true' | NUMERO | CADEIA | '...' | funcao |
+       expprefixo2 | construtortabela | exp opbin exp | opunaria exp
     ;
 
 
@@ -78,7 +78,7 @@ chamadadefuncao :  expprefixo args |
                    expprefixo ':' NOME args
                 ;
 
-args :  '(' (listaexp)? ')' | construtortabela | CADEIA 
+args :  '(' (listaexp)? ')' | construtortabela | CADEIA
      ;
 
 funcao : 'function' corpodafuncao
@@ -87,7 +87,7 @@ funcao : 'function' corpodafuncao
 corpodafuncao : '(' (listapar)? ')' bloco 'end'
               ;
 
-listapar : listadenomes (',' '...')? 
+listapar : listadenomes (',' '...')?
          | '...'
          ;
 
@@ -103,7 +103,7 @@ campo : '[' exp ']' '=' exp | NOME '=' exp | exp
 separadordecampos : ',' | ';'
                   ;
 
-opbin : '+' | '-' | '*' | '/' | '^' | '%' | '..' | '<' | 
+opbin : '+' | '-' | '*' | '/' | '^' | '%' | '..' | '<' |
         '<=' | '>' | '>=' | '==' | '~=' | 'and' | 'or'
       ;
 
