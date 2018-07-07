@@ -50,6 +50,12 @@ comando :  listavar '=' listaexp {
         |  'function' nomedafuncao { pilhaDeTabelas.empilhar(new TabelaDeSimbolos($nomedafuncao.text)); } corpodafuncao { pilhaDeTabelas.desempilhar(); } //Adicao da tabela de simbolos para funcao
         |  'local' 'function' NOME { pilhaDeTabelas.empilhar(new TabelaDeSimbolos($NOME.text)); } corpodafuncao { pilhaDeTabelas.desempilhar(); }
         |  'local' listadenomes ('=' listaexp)?
+            {
+                     TabelaDeSimbolos tsLocal = pilhaDeTabelas.topo(); //Pega a tabela de simbolos do escopo atual
+                     for(String nome : $listadenomes.nomes){ //Adiciona todos as variaveis do bloco local
+                           tsLocal.adicionarSimbolo(nome, "variavel");
+                     }
+                    }
         ;
 
 ultimocomando : 'return' (listaexp)? | 'break'
