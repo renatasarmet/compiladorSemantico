@@ -2,14 +2,14 @@ grammar Luazinha;
 
 
 @members{
-static String grupo = "<Coloque os RAs do seu grupo aqui>";
+static String grupo = "<606723,726586,726556>";
 PilhaDeTabelas pilhaDeTabelas = new PilhaDeTabelas();
 }
 
 
-programa : { pilhaDeTabelas.empilhar(new TabelaDeSimbolos("global")); }
+programa : { pilhaDeTabelas.empilhar(new TabelaDeSimbolos("global")); } //Adicao de uma nova tabela de escopo global
            trecho
-           { pilhaDeTabelas.desempilhar(); }
+           { pilhaDeTabelas.desempilhar(); } //Desempilha a tabela de escopo global
          ;
 
 trecho : (comando ';'?)* (ultimocomando ';'?)?
@@ -19,36 +19,42 @@ bloco : trecho
       ;
 
 comando :  listavar '=' listaexp {
-                                             TabelaDeSimbolos tabelasimb = pilhaDeTabelas.topo(); //Tabela de simbolos do escopo atual
-                                             for(String nome : $listavar.nomes){          // Para todos os nomes de variáveis presente na lista de variáveis, adiciona eles
-                                               if (pilhaDeTabelas.existeSimbolo(nome) == false)  //Caso não exista o símbolo no escopo atual ou acima.
-                                                  tabelasimb.adicionarSimbolo(nome, "variavel"); //Adiciona um único símbolo de um tipo na Tabela de Simbolos
+           TabelaDeSimbolos tabelasimb = pilhaDeTabelas.topo(); //Tabela de simbolos do escopo atual
+           for(String nome : $listavar.nomes){          // Para todos os nomes de variáveis presente na lista de variáveis, adiciona eles
+                if (pilhaDeTabelas.existeSimbolo(nome) == false)  //Caso não exista o símbolo no escopo atual ou acima.
+                    tabelasimb.adicionarSimbolo(nome, "variavel"); //Adiciona um único símbolo de um tipo na Tabela de Simbolos
                                                  //a função adicionarSimbolo está definido em TabelaDeSimbolos.java e tem como parâmetros uma String nome e uma String tipo
-                                             }
-                                           }
+           }
+           }
+
+
+
         |  chamadadefuncao
         |  'do' bloco 'end'
         |  'while' exp 'do' bloco 'end'
         |  'repeat' bloco 'until' exp
         |  'if' exp 'then' bloco ('elseif' exp 'then' bloco)* ('else' bloco)? 'end'
         |  'for' NOME '=' exp ',' exp (',' exp)? 'do'
-           {pilhaDeTabelas.empilhar(new TabelaDeSimbolos("for")); } //Cria e empilha tabela de simbolos de escopo "for"
+           {
+            pilhaDeTabelas.empilhar(new TabelaDeSimbolos("for")); //Adiciona uma nova tabela de escopo for
+            TabelaDeSimbolos tabFor = pilhaDeTabelas.topo(); //Tabela de simbolos do escopo atual
+                        if (pilhaDeTabelas.existeSimbolo($NOME.getText()) == false) //Caso não exista no escopo atual ou acima
+                            tabFor.adicionarSimbolo($NOME.getText(), "variavel"); //Adiciona o símbolo na tabela de simbolos
+            }
            bloco
-           {TabelaDeSimbolos tabFor = pilhaDeTabelas.topo(); //Tabela de simbolos do escopo atual
-            if (pilhaDeTabelas.existeSimbolo($NOME.getText()) == false) //Caso não exista no escopo atual ou acima
-                tabFor.adicionarSimbolo($NOME.getText(), "variavel"); //Adiciona o símbolo na tabela de simbolos
-            pilhaDeTabelas.desempilhar(); } //Desempilha a tabela de simbolos do escoro "for"
+           { pilhaDeTabelas.desempilhar(); } //Desempilha a tabela de simbolos do escoro "for"
          'end'
-        |  'for' listadenomes 'in' listaexp 'do' { pilhaDeTabelas.empilhar(new TabelaDeSimbolos("for")); } bloco
-        {
+        |  'for' listadenomes 'in' listaexp 'do' { pilhaDeTabelas.empilhar(new TabelaDeSimbolos("for")); //Adiciona uma nova tabela de escopo for
+
             TabelaDeSimbolos tabFor = pilhaDeTabelas.topo(); //Tabela de simbolos do escopo atual
             for(String nome : $listadenomes.nomes){       // Para todos os nomes de símbolos presente na lista de símbolos, adiciona eles ao escopo "for"
                 if (pilhaDeTabelas.topo().existeSimbolo(nome) == false) //Caso não exista o símbolo no escopo atual
                    tabFor.adicionarSimbolo(nome, "variavel"); //Adiciona o símbolo na tabela de simbolos
-            }
-            pilhaDeTabelas.desempilhar(); }'end' //Adicao da tabela de simbolos for
+            }} bloco
+        {
+            pilhaDeTabelas.desempilhar(); }'end' //Desempilha a tabela de simbolos do escoro "for"
         |  'function' nomedafuncao { pilhaDeTabelas.empilhar(new TabelaDeSimbolos($nomedafuncao.text)); } corpodafuncao { pilhaDeTabelas.desempilhar(); } //Adicao da tabela de simbolos para funcao
-        |  'local' 'function' NOME { pilhaDeTabelas.empilhar(new TabelaDeSimbolos($NOME.text)); } corpodafuncao { pilhaDeTabelas.desempilhar(); }
+        |  'local' 'function' NOME { pilhaDeTabelas.empilhar(new TabelaDeSimbolos($NOME.text)); } corpodafuncao { pilhaDeTabelas.desempilhar(); } //Adicao da tabela de simbolos para funcao
         |  'local' listadenomes ('=' listaexp)?
             {
                      TabelaDeSimbolos tsLocal = pilhaDeTabelas.topo(); //Pega a tabela de simbolos do escopo atual
@@ -98,7 +104,11 @@ exp :  'nil' | 'false' | 'true' | NUMERO | CADEIA | '...' | funcao |
 expprefixo : NOME ( '[' exp ']' | '.' NOME )*
            ;
 
-expprefixo2 : var | chamadadefuncao | '(' exp ')'
+expprefixo2 : var {
+                if (pilhaDeTabelas.existeSimbolo($var.nome) == false)  //Caso não exista o símbolo no escopo atual ou acima irá emitir uma mensagem de erro.
+                    Mensagens.erroVariavelNaoExiste($var.linha,$var.coluna,$var.nome);
+
+           } | chamadadefuncao | '(' exp ')'
            ;
 
 chamadadefuncao :  expprefixo args |
